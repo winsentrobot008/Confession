@@ -1,14 +1,22 @@
 import gradio as gr
 import os
+import json
 import requests
 
-# 读取 DeepSeek API Key
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 API_URL = "https://api.deepseek.com/v1/chat/completions"
 
+# 读取 Lottie 动画
+def load_lottie(name):
+    path = f"assets/lottie/{name}.json"
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
 def confess(user_text):
     if not API_KEY:
-        return "❌ 未检测到 DEEPSEEK_API_KEY，请在 .env 中设置。"
+        return "❌ 未检测到 DEEPSEEK_API_KEY，请在 .env 中设置。", None
 
     payload = {
         "model": "deepseek-chat",
@@ -35,23 +43,29 @@ def confess(user_text):
         data = response.json()
 
         if "choices" in data:
-            return data["choices"][0]["message"]["content"]
-
-        return f"❌ API 返回异常：{data}"
+            reply = data["choices"][0]["message"]["content"]
+        else:
+            reply = f"❌ API 返回异常：{data}"
 
     except Exception as e:
-        return f"❌ 请求 DeepSeek API 失败：{e}"
+        reply = f"❌ 请求 DeepSeek API 失败：{e}"
+
+    # 返回 AI 回复 + 播放动画
+    return reply, load_lottie("burn")
 
 
-with gr.Blocks(title="Confession — MVP (DeepSeek)") as demo:
+with gr.Blocks(title="Confession — MVP (DeepSeek + Lottie)") as demo:
     gr.Markdown("# 🕯️ Confession — AI 告解房（MVP）")
     gr.Markdown("匿名倾诉 · 仪式感 · 情绪释放")
 
     inp = gr.Textbox(lines=6, label="你的告解", placeholder="在这里匿名倾诉……")
     btn = gr.Button("开始告解")
-    out = gr.Textbox(lines=10, label="AI 教父回复")
 
-    btn.click(confess, inputs=inp, outputs=out)
+    with gr.Row():
+        out = gr.Textbox(lines=10, label="AI 教父回复")
+        anim = gr.AnimatedImage(label="仪式动画")
+
+    btn.click(confess, inputs=inp, outputs=[out, anim])
 
     gr.Markdown("---")
     gr.Markdown("⚠️ **隐私提示：当前为云端 MVP，不适合敏感内容。**")
