@@ -1,59 +1,61 @@
 import gradio as gr
-import json
 import os
-from openai import OpenAI
+import requests
 
-# Load config
-with open("model_config.json", "r") as f:
-    config = json.load(f)
+# 读取 DeepSeek API Key
+API_KEY = os.getenv("DEEPSEEK_API_KEY")
+API_URL = "https://api.deepseek.com/v1/chat/completions"
 
-client = OpenAI(
-    api_key=os.getenv("HF_TOKEN"),
-    base_url=config.get("api_base_url", "https://api.openai.com/v1")
-)
+def confess(user_text):
+    if not API_KEY:
+        return "❌ 未检测到 DEEPSEEK_API_KEY，请在 .env 中设置。"
 
-system_prompt = """You are an AI Confessor — a wise, empathetic, and non-judgmental listener.
-Users come to you to confess their thoughts anonymously.
-Listen with compassion, offer gentle guidance when appropriate,
-and never criticize or shame. Keep responses concise (2-3 sentences).
-Speak in the same language as the user's confession."""
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一位温柔、耐心、无评判的 AI 教父。你的任务是倾听、安抚、引导用户释放情绪。"
+            },
+            {
+                "role": "user",
+                "content": user_text
+            }
+        ],
+        "temperature": 0.7
+    }
 
-def confess(message, history):
-    messages = [{"role": "system", "content": system_prompt}]
-    for h in history:
-        messages.append({"role": "user", "content": h[0]})
-        if h[1]:
-            messages.append({"role": "assistant", "content": h[1]})
-    messages.append({"role": "user", "content": message})
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
+    }
 
-    response = client.chat.completions.create(
-        model=config.get("model", "gpt-4o-mini"),
-        messages=messages,
-        max_tokens=300
-    )
-    reply = response.choices[0].message.content
-    return reply
+    try:
+        response = requests.post(API_URL, json=payload, headers=headers, timeout=30)
+        data = response.json()
 
-with gr.Blocks(title="Confession — AI Confession Booth", theme=gr.themes.Soft()) as demo:
-    gr.Markdown(
-        """
-        # 🙏 Confession — Anonymous AI Confession Booth
-        *Pour out your heart in complete anonymity.*
-        """
-    )
-    chatbot = gr.ChatInterface(
-        fn=confess,
-        title="Confession",
-        description="Write your confession below. No judgment, just compassion.",
-        theme="soft",
-    )
-    gr.Markdown(
-        """
-        ---
-        ⚠️ **Disclaimer**: This is an anonymous AI service. No personal data is stored.
-        For full privacy, try our [local offline version](#).
-        """
-    )
+        if "choices" in data:
+            return data["choices"][0]["message"]["content"]
 
-if __name__ == "__main__":
+        return f"❌ API 返回异常：{data}"
+
+    except Exception as e:
+        return f"❌ 请求 DeepSeek API 失败：{e}"
+
+
+with gr.Blocks(title="Confession — MVP (DeepSeek)") as demo:
+    gr.Markdown("# 🕯️ Confession — AI 告解房（MVP）")
+    gr.Markdown("匿名倾诉 · 仪式感 · 情绪释放")
+
+    inp = gr.Textbox(lines=6, label="你的告解", placeholder="在这里匿名倾诉……")
+    btn = gr.Button("开始告解")
+    out = gr.Textbox(lines=10, label="AI 教父回复")
+
+    btn.click(confess, inputs=inp, outputs=out)
+
+    gr.Markdown("---")
+    gr.Markdown("⚠️ **隐私提示：当前为云端 MVP，不适合敏感内容。**")
+    gr.Markdown("[升级本地版（离线 AI 教父）](https://github.com/winsentrobot008/Confession)")
+
+if __name__ == '__main__':
     demo.launch()
