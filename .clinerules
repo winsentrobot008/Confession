@@ -1,0 +1,4 @@
+# Confession 项目治理规则
+# 所有规则来自根目录 Cline-anti-freeze/.clinerules
+
+include ../Cline-anti-freeze/.clinerules
