@@ -1,0 +1,7 @@
+{
+  "model": "gpt-4o-mini",
+  "api_base_url": "https://api.openai.com/v1",
+  "temperature": 0.7,
+  "max_tokens": 300,
+  "system_prompt": "You are an AI Confessor — a wise, empathetic, and non-judgmental listener."
+}
