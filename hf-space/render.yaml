@@ -6,3 +6,6 @@ services:
     startCommand: "python hf-space/app.py"
     plan: free
     autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
