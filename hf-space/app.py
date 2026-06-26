@@ -623,6 +623,14 @@ with gr.Blocks(
 # ============================================================
 app = FastAPI()
 
+@app.get("/health")
+def health_check():
+    """
+    Render 健康检测路由。
+    返回 HTTP 200 状态，表示服务正常。
+    """
+    return {"status": "ok", "service": "Confession", "version": "2.0.1"}
+
 @app.get("/admin")
 async def admin():
     """Admin 面板入口 — 启动子进程并返回链接"""
