@@ -104,26 +104,7 @@ def load_lottie(name):
 def lottie_html(lottie_dict, animation_name="burn"):
     if not lottie_dict:
         return "<div style='width:128px;height:128px;margin:0 auto;background:rgba(20,20,22,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#6F6F6F;font-size:12px;'>—</div>"
-    lottie_json = json.dumps(lottie_dict)
-    return f"""
-    <div id="lottie-container" style="width:128px;height:128px;margin:0 auto;"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-    <script>
-        (function() {{
-            var c = document.getElementById('lottie-container');
-            if (!c) return;
-            c.innerHTML = '';
-            var animData = {lottie_json};
-            lottie.loadAnimation({{
-                container: c,
-                renderer: 'svg',
-                loop: false,
-                autoplay: true,
-                animationData: animData
-            }});
-        }})();
-    </script>
-    """
+    return f'<div id="lottie-container" style="width:128px;height:128px;margin:0 auto;" data-lottie=\'{json.dumps(lottie_dict)}\'></div>'
 
 # ============================================================
 # 全局暗黑主题 CSS + 光圈动画 + 手机优先 + 语音按钮
@@ -423,8 +404,27 @@ def confess(user_text, persona, lang):
 LANG_CHOICES = ["zh", "en", "sv", "es", "jp", "kr"]
 
 JS_HEAD = """
+<!-- Lottie CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" defer></script>
 <!-- Confession 语音 & 光圈 JS -->
 <script>
+// ========== Lottie 动画初始化（从 data-lottie 属性读取） ==========
+window.initLottie = function() {
+    var c = document.getElementById('lottie-container');
+    if (!c || !c.dataset.lottie) return;
+    try {
+        var animData = JSON.parse(c.dataset.lottie);
+        c.innerHTML = '';
+        lottie.loadAnimation({
+            container: c,
+            renderer: 'svg',
+            loop: false,
+            autoplay: true,
+            animationData: animData
+        });
+    } catch(e) {}
+};
+
 // ========== 语音输入 ==========
 window.startVoiceInput = function() {
     var btn = document.getElementById('mic-btn');
