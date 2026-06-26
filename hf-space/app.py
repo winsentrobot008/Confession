@@ -631,6 +631,18 @@ def health_check():
     """
     return {"status": "ok", "service": "Confession", "version": "2.0.1"}
 
+@app.get("/version")
+def version_info():
+    """
+    返回当前部署版本号和时间。
+    """
+    return {
+        "service": "Confession",
+        "version": "2.0.1",
+        "build_time": "2026-06-26 21:08",
+        "frontend": "Dark Mode + Halo + Speech I/O + Multi-Language"
+    }
+
 @app.get("/admin")
 async def admin():
     """Admin 面板入口 — 启动子进程并返回链接"""
