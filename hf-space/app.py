@@ -422,111 +422,108 @@ def confess(user_text, persona, lang):
 # ============================================================
 LANG_CHOICES = ["zh", "en", "sv", "es", "jp", "kr"]
 
+JS_HEAD = """
+<!-- Confession 语音 & 光圈 JS -->
+<script>
+// ========== 语音输入 ==========
+window.startVoiceInput = function() {
+    var btn = document.getElementById('mic-btn');
+    if (!btn) return;
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('您的浏览器不支持语音识别，请使用 Chrome。');
+        return;
+    }
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    btn.classList.add('listening');
+    btn.textContent = '🔴';
+
+    recognition.onresult = function(event) {
+        var transcript = event.results[0][0].transcript;
+        var textarea = document.querySelector('textarea');
+        if (textarea) {
+            textarea.value = transcript;
+            var evt = new Event('input', { bubbles: true });
+            textarea.dispatchEvent(evt);
+        }
+        btn.classList.remove('listening');
+        btn.textContent = '🎤';
+    };
+
+    recognition.onerror = function() {
+        btn.classList.remove('listening');
+        btn.textContent = '🎤';
+    };
+
+    recognition.onend = function() {
+        btn.classList.remove('listening');
+        btn.textContent = '🎤';
+    };
+
+    recognition.start();
+};
+
+// ========== 语音输出（朗读） ==========
+window.speakReply = function() {
+    var outBox = document.querySelector('[data-testid="textbox"]');
+    if (!outBox) outBox = document.querySelector('textarea');
+    var el = document.getElementById('reply-text');
+    var text = '';
+    if (el) {
+        text = el.innerText || el.textContent;
+    } else {
+        var allTextareas = document.querySelectorAll('textarea');
+        if (allTextareas.length > 1) {
+            text = allTextareas[allTextareas.length - 1].value;
+        }
+    }
+    if (!text) return;
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    window.speechSynthesis.speak(utterance);
+};
+
+// ========== 思考光圈控制 ==========
+window.showThinking = function() {
+    var h = document.getElementById('thinking-halo');
+    if (h) h.classList.add('active');
+};
+window.hideThinking = function() {
+    var h = document.getElementById('thinking-halo');
+    if (h) h.classList.remove('active');
+};
+
+// 监听输出变化自动隐藏光圈
+document.addEventListener('DOMContentLoaded', function() {
+    var observer = new MutationObserver(function() {
+        var outBox = document.querySelector('[data-testid="textbox"]');
+        if (outBox && outBox.value && outBox.value.length > 5) {
+            window.hideThinking();
+        }
+    });
+    var target = document.querySelector('.gradio-container');
+    if (target) {
+        observer.observe(target, { childList: true, subtree: true, characterData: true });
+    }
+});
+</script>
+"""
+
 with gr.Blocks(
     title="Confession — AI 告解房",
     theme=gr.themes.Soft(primary_hue="amber", neutral_hue="slate"),
-    css=GLOBAL_CSS
+    css=GLOBAL_CSS,
+    head=JS_HEAD
 ) as demo:
     gr.HTML("<a href='/admin' style='display:none;'>admin</a>")
-
-    # ---- 全局暗黑主题 + 光圈动画 + 语音 JS ----
-    gr.HTML("""
-    <!-- 语音识别与语音合成 JavaScript -->
-    <script>
-    // ========== 语音输入 ==========
-    window.startVoiceInput = function() {
-        var btn = document.getElementById('mic-btn');
-        if (!btn) return;
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('您的浏览器不支持语音识别，请使用 Chrome。');
-            return;
-        }
-        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        var recognition = new SpeechRecognition();
-        recognition.lang = 'zh-CN';
-        recognition.interimResults = false;
-        recognition.continuous = false;
-
-        btn.classList.add('listening');
-        btn.textContent = '🔴';
-
-        recognition.onresult = function(event) {
-            var transcript = event.results[0][0].transcript;
-            // 找到 Gradio 输入框并填入
-            var textarea = document.querySelector('textarea');
-            if (textarea) {
-                textarea.value = transcript;
-                // 触发 input 事件让 Gradio 检测到变化
-                var evt = new Event('input', { bubbles: true });
-                textarea.dispatchEvent(evt);
-            }
-            btn.classList.remove('listening');
-            btn.textContent = '🎤';
-        };
-
-        recognition.onerror = function() {
-            btn.classList.remove('listening');
-            btn.textContent = '🎤';
-        };
-
-        recognition.onend = function() {
-            btn.classList.remove('listening');
-            btn.textContent = '🎤';
-        };
-
-        recognition.start();
-    };
-
-    // ========== 语音输出（朗读） ==========
-    window.speakReply = function() {
-        var outBox = document.querySelector('[data-testid="textbox"]');
-        if (!outBox) outBox = document.querySelector('textarea');
-        // 尝试从输出区域找文本
-        var el = document.getElementById('reply-text');
-        var text = '';
-        if (el) {
-            text = el.innerText || el.textContent;
-        } else {
-            var allTextareas = document.querySelectorAll('textarea');
-            if (allTextareas.length > 1) {
-                text = allTextareas[allTextareas.length - 1].value;
-            }
-        }
-        if (!text) return;
-        if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-        var utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-        window.speechSynthesis.speak(utterance);
-    };
-
-    // ========== 思考光圈控制 ==========
-    window.showThinking = function() {
-        var h = document.getElementById('thinking-halo');
-        if (h) h.classList.add('active');
-    };
-    window.hideThinking = function() {
-        var h = document.getElementById('thinking-halo');
-        if (h) h.classList.remove('active');
-    };
-
-    // 监听输出变化自动隐藏光圈
-    document.addEventListener('DOMContentLoaded', function() {
-        var observer = new MutationObserver(function() {
-            var outBox = document.querySelector('[data-testid="textbox"]');
-            if (outBox && outBox.value && outBox.value.length > 5) {
-                window.hideThinking();
-            }
-        });
-        var target = document.querySelector('.gradio-container');
-        if (target) {
-            observer.observe(target, { childList: true, subtree: true, characterData: true });
-        }
-    });
-    </script>
-    """)
 
     # ---- 标题 ----
     gr.Markdown("""
