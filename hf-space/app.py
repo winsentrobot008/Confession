@@ -245,6 +245,32 @@ LANG_CHOICES = ["zh", "en", "sv", "es", "jp", "kr"]
 
 with gr.Blocks(title="Confession — MVP (DeepSeek + Lottie)") as demo:
     gr.HTML("<a href='/admin' style='display:none;'>admin</a>")
+
+    # 仪式光环动画
+    gr.HTML("""
+    <style>
+        .halo {
+            width: 120px;
+            height: 120px;
+            border: 2px solid rgba(255, 215, 130, 0.6);
+            border-radius: 50%;
+            animation: spin 6s linear infinite, glow 2s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(255, 215, 130, 0.4);
+            margin: 0 auto 16px auto;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes glow {
+            0% { box-shadow: 0 0 10px rgba(255, 215, 130, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(255, 215, 130, 0.6); }
+            100% { box-shadow: 0 0 10px rgba(255, 215, 130, 0.2); }
+        }
+    </style>
+    <div class="halo"></div>
+    """)
+
     gr.Markdown("# 🕯️ Confession — AI 告解房（多语言版）")
     gr.Markdown("匿名倾诉 · 情绪识别 · 共鸣动画 · 多人格 · 多语言")
 
