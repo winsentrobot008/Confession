@@ -2,9 +2,37 @@ import gradio as gr
 import os
 import json
 import requests
+from dotenv import load_dotenv
+
+# ============================================================
+# .env 加载（支持 HF Space 环境变量）
+# ============================================================
+load_dotenv(override=True)
+print("当前加载的 Key 前 6 位:", os.getenv("DEEPSEEK_API_KEY", "")[:6])
+
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(env_path):
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 API_URL = "https://api.deepseek.com/v1/chat/completions"
+
+# ============================================================
+# 主教人格系统提示词
+# ============================================================
+SYSTEM_PROMPT = (
+    "你是一位温柔、智慧、洞察人心的主教。你的职责是引导罪人认罪、倾诉、反思。"
+    "你的回复永远由三部分组成："
+    "1）洞察：一句话点出用户情绪或挣扎的本质；"
+    "2）引导：提出一个问题，引导用户继续倾诉；"
+    "3）教导：用宗教文本风格给出一句简短的智慧之言，但不扮演神、不自称圣灵。"
+    "你的语言精炼、有力、温柔、深刻。"
+)
 
 # ============================================================
 # 情绪识别词典
@@ -55,7 +83,6 @@ def lottie_html(lottie_dict, animation_name="burn"):
     if not lottie_dict:
         return "<div style='width:256px;height:256px;background:#f5f5f5;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#999;font-size:14px;'>暂无动画</div>"
     lottie_json = json.dumps(lottie_dict)
-    # 淡入淡出 CSS: 动画开始时淡入，结束后淡出
     fade_css = """
     <style>
         @keyframes fadeIn {
@@ -93,10 +120,8 @@ def lottie_html(lottie_dict, animation_name="burn"):
             animationData: animData
         }});
 
-        // 动画播放完成后淡出
         anim.addEventListener('complete', function() {{
             container.classList.add('fade-out');
-            // 淡出完成后重新播放（循环效果）
             setTimeout(function() {{
                 container.classList.remove('fade-out');
                 anim.goToAndPlay(0);
@@ -117,20 +142,21 @@ def confess(user_text):
     emotion_cn = emotion_to_cn(emotion)
     lottie_name = emotion_to_lottie(emotion)
 
-    # 2. 构造 AI 请求
+    # 2. 构造 AI 请求（主教人格）
     payload = {
         "model": "deepseek-chat",
         "messages": [
             {
                 "role": "system",
-                "content": "你是一位温柔、耐心、无评判的 AI 教父。你的任务是倾听、安抚、引导用户释放情绪。"
+                "content": SYSTEM_PROMPT
             },
             {
                 "role": "user",
                 "content": user_text
             }
         ],
-        "temperature": 0.7
+        "temperature": 0.7,
+        "max_tokens": 300
     }
 
     headers = {
@@ -164,20 +190,21 @@ def confess(user_text):
 # Gradio 界面
 # ============================================================
 with gr.Blocks(title="Confession — MVP (DeepSeek + Lottie)") as demo:
-    gr.Markdown("# 🕯️ Confession — AI 告解房（视觉增强版）")
-    gr.Markdown("匿名倾诉 · 仪式感 · 情绪识别 · 共鸣动画")
+    gr.Markdown("# 🕯️ Confession — AI 告解房（主教人格版）")
+    gr.Markdown("匿名倾诉 · 情绪识别 · 共鸣动画 · 洞察引导教导")
 
     inp = gr.Textbox(lines=6, label="你的告解", placeholder="在这里匿名倾诉……")
     btn = gr.Button("开始告解")
 
     with gr.Row():
-        out = gr.Textbox(lines=10, label="AI 教父回复")
+        out = gr.Textbox(lines=10, label="主教回复")
         anim = gr.HTML(label="仪式动画")
 
     btn.click(confess, inputs=inp, outputs=[out, anim])
 
     gr.Markdown("---")
-    gr.Markdown("💡 **情绪识别**：系统会自动识别你的情绪（愤怒🔥 / 悲伤💧 / 迷茫✨），匹配相应的动画效果。")
+    gr.Markdown("💡 **情绪识别**：系统自动识别你的情绪（愤怒🔥 / 悲伤💧 / 迷茫✨），匹配动画效果。")
+    gr.Markdown("💡 **主教人格**：回复结构为洞察 → 引导 → 教导，温柔而深刻。")
     gr.Markdown("⚠️ **隐私提示：当前为云端 MVP，不适合敏感内容。**")
     gr.Markdown("[升级本地版（离线 AI 教父）](https://github.com/winsentrobot008/Confession)")
 
