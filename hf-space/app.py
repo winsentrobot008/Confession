@@ -405,6 +405,12 @@ def confess(user_text, persona, lang):
     except Exception as e:
         ai_reply = f"❌ 请求 DeepSeek API 失败：{e}"
 
+    # 全局状态追踪（供 /debug 路由使用）
+    global _current_language, _current_persona, _current_model
+    _current_language = lang
+    _current_persona = persona
+    _current_model = model
+
     # 4. 情绪共鸣提示（不硬编码语言，让 AI 自己处理情感前缀）
     full_reply = ai_reply
 
@@ -623,6 +629,11 @@ with gr.Blocks(
 # ============================================================
 app = FastAPI()
 
+# 全局状态变量（供 /debug 路由追踪运行时状态）
+_current_language = "unknown"
+_current_persona = "unknown"
+_current_model = "unknown"
+
 @app.get("/health")
 def health_check():
     """
@@ -641,6 +652,21 @@ def version_info():
         "version": "2.0.1",
         "build_time": "2026-06-26 21:08",
         "frontend": "Dark Mode + Halo + Speech I/O + Multi-Language"
+    }
+
+@app.get("/debug")
+def debug_info():
+    """
+    返回当前系统调试信息：语言、模型、人格状态。
+    """
+    return {
+        "service": "Confession",
+        "version": "2.0.1",
+        "build_time": "2026-06-26 21:13",
+        "language": _current_language,
+        "persona": _current_persona,
+        "model": _current_model,
+        "status": "running"
     }
 
 @app.get("/admin")
