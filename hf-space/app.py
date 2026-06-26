@@ -4,11 +4,27 @@ import json
 import requests
 import subprocess
 import sys
+from functools import wraps
+from flask import Flask, request
 from dotenv import load_dotenv
-from persona_engine import load_config, build_bishop_prompt
+from persona_engine import load_config, build_bishop_prompt, father_persona, PERSONA_LIST, get_persona_prompt
 
 # ============================================================
-# Admin 面板启动
+# 简单安全认证 - 密码保护 Admin 面板
+# ============================================================
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+
+def require_admin_password(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        pwd = request.args.get("pwd")
+        if pwd != ADMIN_PASSWORD:
+            return "Unauthorized: missing or wrong password", 401
+        return func(*args, **kwargs)
+    return wrapper
+
+# ============================================================
+# Admin 面板启动（子进程，端口 7861）
 # ============================================================
 def launch_admin():
     admin_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin_panel.py")
@@ -19,7 +35,6 @@ def launch_admin():
 # .env 加载（支持 HF Space 环境变量）
 # ============================================================
 load_dotenv(override=True)
-print("当前加载的 Key 前 6 位:", os.getenv("DEEPSEEK_API_KEY", "")[:6])
 
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -32,6 +47,40 @@ if os.path.exists(env_path):
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 API_URL = "https://api.deepseek.com/v1/chat/completions"
+
+# ============================================================
+# 免费版 / 付费版策略（保护 Token）
+# ============================================================
+IS_FREE_VERSION = os.getenv("CONFESSION_FREE_VERSION", "true").lower() == "true"
+
+def get_model_and_max_tokens(user_is_free: bool = True):
+    """根据版本返回模型名称和最大 Token 数"""
+    if user_is_free:
+        return "deepseek-chat", 300
+    else:
+        return "deepseek-chat", 2000
+
+# ============================================================
+# 多语言文本加载
+# ============================================================
+LOCALES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "locales")
+
+def load_locale(lang: str) -> dict:
+    """从 /locales 目录加载对应语言的 UI 文本"""
+    path = os.path.join(LOCALES_DIR, f"{lang}.json")
+    if not os.path.exists(path):
+        path = os.path.join(LOCALES_DIR, "en.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {
+            "title": "Confession",
+            "start_button": "Start Confession",
+            "input_placeholder": "Enter your confession...",
+            "persona_label": "Choose Persona Mode",
+            "language_label": "Select Language"
+        }
 
 # ============================================================
 # 情绪识别词典
@@ -132,7 +181,7 @@ def lottie_html(lottie_dict, animation_name="burn"):
 # ============================================================
 # 主告解函数
 # ============================================================
-def confess(user_text):
+def confess(user_text, persona, lang):
     if not API_KEY:
         return "❌ 未检测到 DEEPSEEK_API_KEY，请在 .env 中设置。", "<div>请先设置 API Key</div>"
 
@@ -141,11 +190,13 @@ def confess(user_text):
     emotion_cn = emotion_to_cn(emotion)
     lottie_name = emotion_to_lottie(emotion)
 
-    # 2. 构造 AI 请求（Persona Engine 动态提示词）
-    config = load_config()
-    system_prompt = build_bishop_prompt(config)
+    # 2. 获取模型和 Token 限制（免费版 / 付费版策略）
+    model, max_tokens = get_model_and_max_tokens(IS_FREE_VERSION)
+
+    # 3. 构造 AI 请求（Persona Engine 动态提示词 + 多语言）
+    system_prompt = get_persona_prompt(persona, lang)
     payload = {
-        "model": "deepseek-chat",
+        "model": model,
         "messages": [
             {
                 "role": "system",
@@ -157,7 +208,7 @@ def confess(user_text):
             }
         ],
         "temperature": 0.7,
-        "max_tokens": 300
+        "max_tokens": max_tokens
     }
 
     headers = {
@@ -177,41 +228,84 @@ def confess(user_text):
     except Exception as e:
         ai_reply = f"❌ 请求 DeepSeek API 失败：{e}"
 
-    # 3. 在 AI 回复前加入情绪共鸣提示（非 neutral 才加）
+    # 4. 在 AI 回复前加入情绪共鸣提示（非 neutral 才加）
     if emotion != "neutral":
         full_reply = f"我感受到你的{emotion_cn}，孩子，让我们一起面对。\n\n{ai_reply}"
     else:
         full_reply = ai_reply
 
-    # 4. 返回 AI 回复 + 对应情绪的动画
+    # 5. 返回 AI 回复 + 对应情绪的动画
     return full_reply, lottie_html(load_lottie(lottie_name), lottie_name)
 
 
 # ============================================================
 # Gradio 界面
 # ============================================================
+LANG_CHOICES = ["zh", "en", "sv", "es", "jp", "kr"]
+
 with gr.Blocks(title="Confession — MVP (DeepSeek + Lottie)") as demo:
     gr.HTML("<a href='/admin' style='display:none;'>admin</a>")
-    gr.Markdown("# 🕯️ Confession — AI 告解房（主教人格版）")
-    gr.Markdown("匿名倾诉 · 情绪识别 · 共鸣动画 · 洞察引导教导")
+    gr.Markdown("# 🕯️ Confession — AI 告解房（多语言版）")
+    gr.Markdown("匿名倾诉 · 情绪识别 · 共鸣动画 · 多人格 · 多语言")
 
-    inp = gr.Textbox(lines=6, label="你的告解", placeholder="在这里匿名倾诉……")
+    with gr.Row():
+        lang_selector = gr.Radio(
+            LANG_CHOICES,
+            label="选择语言 / Language",
+            value="zh"
+        )
+        persona_selector = gr.Radio(
+            list(PERSONA_LIST.keys()),
+            label="选择人格模式",
+            info="主教：洞察→引导→教导　｜　教父：洞见→智慧→先知",
+            value="bishop"
+        )
+
+    inp = gr.Textbox(lines=6, label="你的告解", placeholder="请输入你的告解...")
     btn = gr.Button("开始告解")
 
     with gr.Row():
-        out = gr.Textbox(lines=10, label="主教回复")
+        out = gr.Textbox(lines=10, label="AI 回复")
         anim = gr.HTML(label="仪式动画")
 
-    btn.click(confess, inputs=inp, outputs=[out, anim])
+    btn.click(confess, inputs=[inp, persona_selector, lang_selector], outputs=[out, anim])
 
     gr.Markdown("---")
     gr.Markdown("💡 **情绪识别**：系统自动识别你的情绪（愤怒🔥 / 悲伤💧 / 迷茫✨），匹配动画效果。")
-    gr.Markdown("💡 **主教人格**：回复结构为洞察 → 引导 → 教导，温柔而深刻。")
+    gr.Markdown("💡 **人格切换**：可选择「主教人格」或「教父人格」。")
+    gr.Markdown("💡 **多语言支持**：中文 / English / Svenska / Español / 日本語 / 한국어")
     gr.Markdown("⚠️ **隐私提示：当前为云端 MVP，不适合敏感内容。**")
     gr.Markdown("[升级本地版（离线 AI 教父）](https://github.com/winsentrobot008/Confession)")
+
+
+# ============================================================
+# Flask 应用 — 提供密码保护的 /admin 路由
+# ============================================================
+app = Flask(__name__)
+
+@app.route("/admin")
+@require_admin_password
+def admin():
+    """密码保护的 Admin 面板入口 —— 启动子进程并引导用户访问"""
+    launch_admin()
+    return """
+    <html>
+    <head><title>Admin Panel</title></head>
+    <body style="font-family: sans-serif; text-align: center; padding: 2rem;">
+        <h1>🛠 Admin Panel</h1>
+        <p>Admin panel launched on <strong>port 7861</strong>.</p>
+        <p><a href="http://localhost:7861" target="_blank">Open Admin Panel (localhost:7861)</a></p>
+        <hr>
+        <p><a href="/">← Back to Confession</a></p>
+    </body>
+    </html>
+    """
+
+# 将 Gradio 应用挂载到 Flask 的根路径
+app = gr.mount_gradio_app(app, demo, path="/")
 
 if __name__ == '__main__':
     if "admin" in sys.argv:
         launch_admin()
     else:
-        demo.launch(server_name="0.0.0.0", server_port=8080)
+        app.run(server_name="0.0.0.0", server_port=8080)

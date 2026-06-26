@@ -12,6 +12,58 @@ DEFAULT_CONFIG = {
     "quote_style": "scripture"
 }
 
+# ============================================================
+# 教父人格（Father Persona）V1.0
+# ============================================================
+father_persona = {
+    "name": "Father",
+    "description": "灵性导师、洞察者、先知。提供洞见、智慧、启示，引导用户自省与觉醒。",
+    "system_prompt": None  # Dynamically loaded via load_persona_prompt()
+}
+
+# 可用人格列表
+PERSONA_LIST = {
+    "bishop": {
+        "name": "主教（Bishop）",
+        "description": "温柔、智慧、洞察人心的主教。回复结构为洞察→引导→教导。"
+    },
+    "father": {
+        "name": "教父（Father）",
+        "description": "灵性导师、洞察者、先知。回复结构为洞见→智慧→先知。"
+    }
+}
+
+# ============================================================
+# 多语言人格提示词加载
+# ============================================================
+def load_persona_prompt(persona: str, lang: str) -> str:
+    """从 /persona 目录加载对应语言的人格提示词文件。
+    文件命名规则：{persona}_{lang}.txt
+    如果指定语言的文件不存在，回退到英文版。
+    """
+    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "persona")
+    path = os.path.join(base_dir, f"{persona}_{lang}.txt")
+    if not os.path.exists(path):
+        path = os.path.join(base_dir, f"{persona}_en.txt")
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def get_persona_prompt(persona: str, lang: str) -> str:
+    """获取指定人格和语言的完整 system prompt。
+    对 bishop 人格仍使用原 build_bishop_prompt()，但附加语言指令。
+    对 father 人格从外部文件加载。
+    """
+    lang_instruction = f"\n\n请使用用户输入的语言（{lang}）进行回复。"
+
+    if persona == "father":
+        prompt = load_persona_prompt("father", lang)
+        return prompt + lang_instruction
+    else:
+        config = load_config()
+        return build_bishop_prompt(config) + lang_instruction
+
+
 def load_config():
     if os.path.exists("persona_config.json"):
         with open("persona_config.json", "r", encoding="utf-8") as f:
