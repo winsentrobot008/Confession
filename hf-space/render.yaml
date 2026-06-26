@@ -2,7 +2,7 @@ services:
   - type: web
     name: confession-mvp
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python app.py"
+    buildCommand: "pip install -r hf-space/requirements.txt"
+    startCommand: "python hf-space/app.py"
     plan: free
     autoDeploy: true
