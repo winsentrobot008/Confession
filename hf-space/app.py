@@ -1,4 +1,5 @@
 import gradio as gr
+gr.close_all()  # 清理旧 Gradio 实例
 import os
 import json
 import requests
@@ -625,6 +626,15 @@ with gr.Blocks(
 # FastAPI 应用 — 挂载 Gradio
 # ============================================================
 app = FastAPI()
+
+@app.middleware("http")
+async def no_cache_headers(request: Request, call_next):
+    """禁用浏览器缓存，确保前端加载最新构建文件"""
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 # 全局状态变量（供 /debug 路由追踪运行时状态）
 _current_language = "unknown"
