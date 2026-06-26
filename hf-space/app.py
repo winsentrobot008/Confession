@@ -5,23 +5,9 @@ import requests
 import subprocess
 import sys
 from functools import wraps
-from flask import Flask, request
+from fastapi import FastAPI, Request
 from dotenv import load_dotenv
 from persona_engine import load_config, build_bishop_prompt, father_persona, PERSONA_LIST, get_persona_prompt
-
-# ============================================================
-# 简单安全认证 - 密码保护 Admin 面板
-# ============================================================
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
-
-def require_admin_password(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        pwd = request.args.get("pwd")
-        if pwd != ADMIN_PASSWORD:
-            return "Unauthorized: missing or wrong password", 401
-        return func(*args, **kwargs)
-    return wrapper
 
 # ============================================================
 # Admin 面板启动（子进程，端口 7861）
@@ -633,13 +619,13 @@ with gr.Blocks(
 
 
 # ============================================================
-# Flask 应用 — 提供密码保护的 /admin 路由
+# FastAPI 应用 — 挂载 Gradio
 # ============================================================
-app = Flask(__name__)
+app = FastAPI()
 
-@app.route("/admin")
-@require_admin_password
-def admin():
+@app.get("/admin")
+async def admin():
+    """Admin 面板入口 — 启动子进程并返回链接"""
     launch_admin()
     return """
     <html>
@@ -660,4 +646,6 @@ if __name__ == '__main__':
     if "admin" in sys.argv:
         launch_admin()
     else:
-        app.run(server_name="0.0.0.0", server_port=8080)
+        import uvicorn
+        port = int(os.getenv("PORT", "8000"))
+        uvicorn.run(app, host="0.0.0.0", port=port)
