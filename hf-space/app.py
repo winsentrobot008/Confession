@@ -214,9 +214,4 @@ if __name__ == '__main__':
     if "admin" in sys.argv:
         launch_admin()
     else:
-        demo.launch(theme=gr.themes.Soft(
-            primary_hue="amber",
-            secondary_hue="neutral",
-            neutral_hue="stone",
-            font=gr.themes.GoogleFont("Merriweather"),
-        ))
+        demo.launch(server_name="0.0.0.0", server_port=8080)
