@@ -2,8 +2,18 @@ import gradio as gr
 import os
 import json
 import requests
+import subprocess
+import sys
 from dotenv import load_dotenv
 from persona_engine import load_config, build_bishop_prompt
+
+# ============================================================
+# Admin 面板启动
+# ============================================================
+def launch_admin():
+    admin_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin_panel.py")
+    subprocess.Popen(["python", admin_script])
+    print("🛠 Admin panel launched (port 7861)")
 
 # ============================================================
 # .env 加载（支持 HF Space 环境变量）
@@ -22,18 +32,6 @@ if os.path.exists(env_path):
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 API_URL = "https://api.deepseek.com/v1/chat/completions"
-
-# ============================================================
-# 主教人格系统提示词
-# ============================================================
-SYSTEM_PROMPT = (
-    "你是一位温柔、智慧、洞察人心的主教。你的职责是引导罪人认罪、倾诉、反思。"
-    "你的回复永远由三部分组成："
-    "1）洞察：一句话点出用户情绪或挣扎的本质；"
-    "2）引导：提出一个问题，引导用户继续倾诉；"
-    "3）教导：用宗教文本风格给出一句简短的智慧之言，但不扮演神、不自称圣灵。"
-    "你的语言精炼、有力、温柔、深刻。"
-)
 
 # ============================================================
 # 情绪识别词典
@@ -193,6 +191,7 @@ def confess(user_text):
 # Gradio 界面
 # ============================================================
 with gr.Blocks(title="Confession — MVP (DeepSeek + Lottie)") as demo:
+    gr.HTML("<a href='/admin' style='display:none;'>admin</a>")
     gr.Markdown("# 🕯️ Confession — AI 告解房（主教人格版）")
     gr.Markdown("匿名倾诉 · 情绪识别 · 共鸣动画 · 洞察引导教导")
 
@@ -212,9 +211,12 @@ with gr.Blocks(title="Confession — MVP (DeepSeek + Lottie)") as demo:
     gr.Markdown("[升级本地版（离线 AI 教父）](https://github.com/winsentrobot008/Confession)")
 
 if __name__ == '__main__':
-    demo.launch(theme=gr.themes.Soft(
-        primary_hue="amber",
-        secondary_hue="neutral",
-        neutral_hue="stone",
-        font=gr.themes.GoogleFont("Merriweather"),
-    ))
+    if "admin" in sys.argv:
+        launch_admin()
+    else:
+        demo.launch(theme=gr.themes.Soft(
+            primary_hue="amber",
+            secondary_hue="neutral",
+            neutral_hue="stone",
+            font=gr.themes.GoogleFont("Merriweather"),
+        ))
