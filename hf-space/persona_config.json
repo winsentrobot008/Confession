@@ -1,0 +1,10 @@
+{
+    "emotion_detection": 1.0,
+    "sin_detection": 0.8,
+    "language_temperature": 0.3,
+    "teaching_style": "spiritual",
+    "path_guidance": true,
+    "reply_length": "short",
+    "question_depth": 2,
+    "quote_style": "scripture"
+}

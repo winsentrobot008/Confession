@@ -3,6 +3,7 @@ import os
 import json
 import requests
 from dotenv import load_dotenv
+from persona_engine import load_config, build_bishop_prompt
 
 # ============================================================
 # .env 加载（支持 HF Space 环境变量）
@@ -142,13 +143,15 @@ def confess(user_text):
     emotion_cn = emotion_to_cn(emotion)
     lottie_name = emotion_to_lottie(emotion)
 
-    # 2. 构造 AI 请求（主教人格）
+    # 2. 构造 AI 请求（Persona Engine 动态提示词）
+    config = load_config()
+    system_prompt = build_bishop_prompt(config)
     payload = {
         "model": "deepseek-chat",
         "messages": [
             {
                 "role": "system",
-                "content": SYSTEM_PROMPT
+                "content": system_prompt
             },
             {
                 "role": "user",
