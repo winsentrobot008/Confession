@@ -54,7 +54,12 @@ def get_persona_prompt(persona: str, lang: str) -> str:
     对 bishop 人格仍使用原 build_bishop_prompt()，但附加语言指令。
     对 father 人格从外部文件加载。
     """
-    lang_instruction = f"\n\n请使用用户输入的语言（{lang}）进行回复。"
+    # 语言指令 — 用英文确保兼容所有语言模型
+    lang_instruction = (
+        f"\n\nIMPORTANT: You MUST reply in the language '{lang}'. "
+        f"Use {lang} for your entire response including all three sections. "
+        f"请务必使用用户所选语言（{lang}）进行完整回复。"
+    )
 
     if persona == "father":
         prompt = load_persona_prompt("father", lang)

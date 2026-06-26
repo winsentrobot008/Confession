@@ -419,11 +419,8 @@ def confess(user_text, persona, lang):
     except Exception as e:
         ai_reply = f"❌ 请求 DeepSeek API 失败：{e}"
 
-    # 4. 情绪共鸣提示
-    if emotion != "neutral":
-        full_reply = f"我感受到你的{emotion_cn}，孩子，让我们一起面对。\n\n{ai_reply}"
-    else:
-        full_reply = ai_reply
+    # 4. 情绪共鸣提示（不硬编码语言，让 AI 自己处理情感前缀）
+    full_reply = ai_reply
 
     return full_reply, lottie_html(load_lottie(lottie_name), lottie_name)
 
