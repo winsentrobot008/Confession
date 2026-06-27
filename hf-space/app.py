@@ -108,7 +108,7 @@ app = FastAPI()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 assets_path = os.path.join(BASE_DIR, "assets")
-app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+app.mount("/static", StaticFiles(directory=assets_path), name="static")
 
 # ============================================================
 # Gradio 界面（视频背景 + 暗黑主题 + 三段式卡片输出 + 粒子特效 + 底部声明）
@@ -117,10 +117,10 @@ _css_path = os.path.join(assets_path, "theme.css")
 with open(_css_path, "r", encoding="utf-8") as f:
     _theme_css = f.read()
 
-with gr.Blocks(css=_theme_css, head="""<script src="/assets/js/particles.js"></script><script src="/assets/js/energy-ring.js"></script>""") as demo:
+with gr.Blocks(css=_theme_css, head="""<script src="/static/js/particles.js"></script><script src="/static/js/energy-ring.js"></script>""") as demo:
     gr.HTML("""
-    <video class='bg-video' autoplay loop muted playsinline poster='/assets/images/confession-room.jpg'>
-        <source src='/assets/images/confession-room-loop.webm' type='video/webm'>
+    <video class='bg-video' autoplay loop muted playsinline poster='/static/images/confession-room.jpg'>
+        <source src='/static/images/confession-room-loop.webm' type='video/webm'>
     </video>
     """)
     gr.HTML("<div class='halo'></div>")
