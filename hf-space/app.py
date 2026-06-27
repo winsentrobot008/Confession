@@ -101,7 +101,7 @@ def confess(user_text, persona, lang):
 # ============================================================
 # Gradio 界面（CSS 暗黑主题 + 三段式卡片输出 + 底部声明）
 # ============================================================
-with gr.Blocks(css="assets/theme.css") as demo:
+with gr.Blocks() as demo:
     gr.HTML("<div class='halo'></div>")
     input_text = gr.Textbox(label="你的告解", placeholder="在这里匿名倾诉……", lines=3)
     with gr.Row():
@@ -111,6 +111,8 @@ with gr.Blocks(css="assets/theme.css") as demo:
     output_text = gr.HTML(label="Response")
 
     submit.click(confess, [input_text, persona_selector, lang_selector], output_text)
+
+    demo.css = "assets/theme.css"
 
     gr.HTML("""
     <div class='footer'>
