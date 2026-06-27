@@ -5,6 +5,7 @@ import requests
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from persona_engine import load_config, build_bishop_prompt, father_persona, PERSONA_LIST, get_persona_prompt
 
@@ -79,7 +80,9 @@ def confess(user_text, persona, lang):
             insight = paragraphs[0] if len(paragraphs) > 0 else content
             guidance = paragraphs[1] if len(paragraphs) > 1 else content
             teaching = paragraphs[2] if len(paragraphs) > 2 else content
+            trigger_script = "<script>if(window.__confessionParticles)window.__confessionParticles.trigger(60);</script><script>if(window.triggerHolyEnergy)window.triggerHolyEnergy();</script>"
             return f"""
+            {trigger_script}
             <div class='card'>
                 <div class='card-title'>Insight</div>
                 <div>{insight}</div>
@@ -99,9 +102,27 @@ def confess(user_text, persona, lang):
         return f"<div class='card'><div class='card-title'>Error</div><div>❌ 请求失败：{e}</div></div>"
 
 # ============================================================
-# Gradio 界面（CSS 暗黑主题 + 三段式卡片输出 + 底部声明）
+# FastAPI 应用 — 静态资源挂载 & 路由
 # ============================================================
-with gr.Blocks() as demo:
+app = FastAPI()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+assets_path = os.path.join(BASE_DIR, "assets")
+app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+
+# ============================================================
+# Gradio 界面（视频背景 + 暗黑主题 + 三段式卡片输出 + 粒子特效 + 底部声明）
+# ============================================================
+_css_path = os.path.join(assets_path, "theme.css")
+with open(_css_path, "r", encoding="utf-8") as f:
+    _theme_css = f.read()
+
+with gr.Blocks(css=_theme_css, head="""<script src="/assets/js/particles.js"></script><script src="/assets/js/energy-ring.js"></script>""") as demo:
+    gr.HTML("""
+    <video class='bg-video' autoplay loop muted playsinline poster='/assets/images/confession-room.jpg'>
+        <source src='/assets/images/confession-room-loop.webm' type='video/webm'>
+    </video>
+    """)
     gr.HTML("<div class='halo'></div>")
     input_text = gr.Textbox(label="你的告解", placeholder="在这里匿名倾诉……", lines=3)
     with gr.Row():
@@ -112,8 +133,6 @@ with gr.Blocks() as demo:
 
     submit.click(confess, [input_text, persona_selector, lang_selector], output_text)
 
-    demo.css = "assets/theme.css"
-
     gr.HTML("""
     <div class='footer'>
         Confession v2.1 — Privacy First. No data stored.
@@ -121,10 +140,8 @@ with gr.Blocks() as demo:
     """)
 
 # ============================================================
-# FastAPI 应用 — 健康检测 & 调试路由
+# 健康检测 & 调试路由
 # ============================================================
-app = FastAPI()
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -137,6 +154,9 @@ def debug():
         "model": _current_model
     }
 
+# ============================================================
+# 挂载 Gradio 应用到根路径
+# ============================================================
 app = gr.mount_gradio_app(app, demo, path="/")
 
 if __name__ == "__main__":
