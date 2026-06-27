@@ -1,49 +1,48 @@
-/* 全局暗黑主题 */
+/* Mobile-first layout */
 body, .gradio-container {
-    background: #0d0d0f !important;
-    color: #e6e6e6 !important;
-    font-family: "Inter", sans-serif;
+    background: radial-gradient(circle at center, #0b0b0d 0%, #000000 100%);
+    color: #e6e6e6;
+    font-family: "Inter", "Noto Sans SC", sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
-/* 输入框、输出框暗黑风格 */
+/* Centered mobile layout */
+.gradio-container {
+    max-width: 480px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Input fields */
 textarea, input, select {
-    background: #1a1a1d !important;
-    color: #e6e6e6 !important;
-    border: 1px solid #333 !important;
+    background: rgba(30,30,35,0.9);
+    color: #e6e6e6;
+    border: 1px solid #333;
+    border-radius: 8px;
+    width: 100%;
 }
 
-/* 按钮风格 */
+/* Button */
 button {
-    background: #3a3a3f !important;
-    color: white !important;
-    border-radius: 8px !important;
-    border: none !important;
+    background: linear-gradient(90deg, #4b0082, #8a2be2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-weight: bold;
 }
 button:hover {
-    background: #505057 !important;
+    background: linear-gradient(90deg, #6a0dad, #9b30ff);
 }
 
-/* 三段式回复卡片 */
-.card {
-    background: #1a1a1d;
-    padding: 16px;
-    border-radius: 12px;
-    margin-bottom: 12px;
-    border: 1px solid #333;
-}
-.card-title {
-    font-weight: bold;
-    margin-bottom: 6px;
-    color: #8ab4ff;
-}
-
-/* 光圈动画（纯 CSS） */
+/* Confession room glow */
 .halo {
-    width: 160px;
-    height: 160px;
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
     margin: 20px auto;
-    background: radial-gradient(circle, rgba(138,180,255,0.4), rgba(13,13,15,0));
+    background: radial-gradient(circle, rgba(138,180,255,0.3), rgba(13,13,15,0));
     animation: pulse 3s infinite ease-in-out;
 }
 @keyframes pulse {
@@ -52,10 +51,24 @@ button:hover {
     100% { transform: scale(0.95); opacity: 0.7; }
 }
 
-/* 底部隐私声明 */
+/* Output cards */
+.card {
+    background: rgba(20,20,25,0.9);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #333;
+}
+.card-title {
+    font-weight: bold;
+    color: #8ab4ff;
+    margin-bottom: 6px;
+}
+
+/* Footer */
 .footer {
-    margin-top: 20px;
-    font-size: 12px;
     text-align: center;
+    font-size: 12px;
     opacity: 0.6;
+    margin-top: 20px;
 }
