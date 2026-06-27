@@ -119,8 +119,8 @@ with open(_css_path, "r", encoding="utf-8") as f:
 
 with gr.Blocks(css=_theme_css, head="""<script src="/static/js/particles.js"></script><script src="/static/js/energy-ring.js"></script>""") as demo:
     gr.HTML("""
-    <video class='bg-video' autoplay loop muted playsinline poster='/static/images/confession-room.jpg'>
-        <source src='/static/images/confession-room-loop.webm' type='video/webm'>
+    <video autoplay loop muted playsinline poster="/static/images/confession-room-1.jpg" class="bg-video">
+        <source src="/static/images/confession-room-loop.webm" type="video/webm">
     </video>
     """)
     gr.HTML("<div class='halo'></div>")
